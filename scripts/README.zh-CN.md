@@ -18,13 +18,13 @@ bash scripts/pc-free.sh install
 
 它会依次执行：
 
-1. 生成 `.env`
+1. 生成 `.env`，并自动探测宿主机 `RAM_SIZE` 和 `CPU_CORES`
 2. 生成 `windows10.yml`
 3. 启动 Windows 容器
 
 启动后在 GitHub Codespaces 的端口面板中打开 `8006` 端口即可访问 Windows。
 
-如果你已经有旧的 `windows10.yml`，需要强制重新生成：
+如果 `.env` 已存在，脚本会保留用户名和密码，只刷新 `RAM_SIZE` 与 `CPU_CORES`。如果你还需要重建整个 `.env` 或 `windows10.yml`：
 
 ```bash
 bash scripts/pc-free.sh config --force

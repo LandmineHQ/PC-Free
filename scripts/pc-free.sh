@@ -253,24 +253,110 @@ prompt_env_value() {
   printf '%s' "$value"
 }
 
+detect_cpu_cores() {
+  local cores=""
+
+  if command -v nproc >/dev/null 2>&1; then
+    cores="$(nproc 2>/dev/null || true)"
+  elif command -v getconf >/dev/null 2>&1; then
+    cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)"
+  elif [[ -r /proc/cpuinfo ]]; then
+    cores="$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || true)"
+  fi
+
+  if [[ "$cores" =~ ^[0-9]+$ && "$cores" -gt 0 ]]; then
+    printf '%s' "$cores"
+  else
+    printf '2'
+  fi
+}
+
+detect_ram_size() {
+  local mem_kb=""
+  local mem_bytes=""
+  local cgroup_bytes=""
+  local mem_gb=""
+
+  if [[ -r /proc/meminfo ]]; then
+    mem_kb="$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo 2>/dev/null || true)"
+  fi
+
+  if [[ "$mem_kb" =~ ^[0-9]+$ && "$mem_kb" -gt 0 ]]; then
+    mem_bytes="$((mem_kb * 1024))"
+  fi
+
+  if [[ -r /sys/fs/cgroup/memory.max ]]; then
+    cgroup_bytes="$(cat /sys/fs/cgroup/memory.max 2>/dev/null || true)"
+  elif [[ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]]; then
+    cgroup_bytes="$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null || true)"
+  fi
+
+  if [[ "$cgroup_bytes" =~ ^[0-9]+$ && "$cgroup_bytes" -gt 0 ]]; then
+    if [[ -z "$mem_bytes" || "$cgroup_bytes" -lt "$mem_bytes" ]]; then
+      mem_bytes="$cgroup_bytes"
+    fi
+  fi
+
+  if [[ "$mem_bytes" =~ ^[0-9]+$ && "$mem_bytes" -gt 0 ]]; then
+    mem_gb="$((mem_bytes / 1024 / 1024 / 1024))"
+    if [[ "$mem_gb" -lt 1 ]]; then
+      mem_gb=1
+    fi
+    printf '%sG' "$mem_gb"
+  else
+    printf '6G'
+  fi
+}
+
+refresh_env_resources() {
+  local ram_size="${RAM_SIZE:-$(detect_ram_size)}"
+  local cpu_cores="${CPU_CORES:-$(detect_cpu_cores)}"
+  local tmp
+
+  [[ "$ram_size" =~ ^[0-9]+[GgMm]$ ]] || die "RAM_SIZE must look like 8G or 8192M"
+  [[ "$cpu_cores" =~ ^[0-9]+$ && "$cpu_cores" -gt 0 ]] || die "CPU_CORES must be a positive integer"
+
+  tmp="$(mktemp)"
+  if [[ -s "$ENV_FILE" ]]; then
+    grep -vE '^(RAM_SIZE|CPU_CORES)=' "$ENV_FILE" > "$tmp" || true
+  fi
+
+  {
+    write_env_var RAM_SIZE "$ram_size"
+    write_env_var CPU_CORES "$cpu_cores"
+  } >> "$tmp"
+
+  mv "$tmp" "$ENV_FILE"
+  chmod 600 "$ENV_FILE" 2>/dev/null || true
+  log "Refreshed host resources in $ENV_FILE: RAM_SIZE=$ram_size CPU_CORES=$cpu_cores"
+}
+
 write_env_file() {
   if [[ -f "$ENV_FILE" && "$FORCE" != "1" ]]; then
-    log ".env already exists. Use --force to regenerate it."
+    refresh_env_resources
     return 0
   fi
 
   local windows_username
   local windows_password
+  local ram_size
+  local cpu_cores
 
   windows_username="$(prompt_env_value WINDOWS_USERNAME "Windows username" "pcfree")"
   windows_password="$(prompt_env_value WINDOWS_PASSWORD "Windows password" "" "1")"
+  ram_size="${RAM_SIZE:-$(detect_ram_size)}"
+  cpu_cores="${CPU_CORES:-$(detect_cpu_cores)}"
 
   [[ -n "$windows_username" ]] || die "WINDOWS_USERNAME cannot be empty"
   [[ -n "$windows_password" ]] || die "WINDOWS_PASSWORD cannot be empty"
+  [[ "$ram_size" =~ ^[0-9]+[GgMm]$ ]] || die "RAM_SIZE must look like 8G or 8192M"
+  [[ "$cpu_cores" =~ ^[0-9]+$ && "$cpu_cores" -gt 0 ]] || die "CPU_CORES must be a positive integer"
 
   validate_env_value WINDOWS_USERNAME "$windows_username"
   validate_env_value WINDOWS_PASSWORD "$windows_password"
   validate_env_value WINDOWS_STORAGE "$WINDOWS_STORAGE"
+  validate_env_value RAM_SIZE "$ram_size"
+  validate_env_value CPU_CORES "$cpu_cores"
 
   if [[ "$windows_username" =~ [[:space:]] || "$WINDOWS_STORAGE" =~ [[:space:]] ]]; then
     die "WINDOWS_USERNAME and WINDOWS_STORAGE cannot contain whitespace"
@@ -280,9 +366,11 @@ write_env_file() {
     write_env_var WINDOWS_USERNAME "$windows_username"
     write_env_var WINDOWS_PASSWORD "$windows_password"
     write_env_var WINDOWS_STORAGE "$WINDOWS_STORAGE"
+    write_env_var RAM_SIZE "$ram_size"
+    write_env_var CPU_CORES "$cpu_cores"
   } > "$ENV_FILE"
   chmod 600 "$ENV_FILE" 2>/dev/null || true
-  log "Wrote $ENV_FILE"
+  log "Wrote $ENV_FILE with RAM_SIZE=$ram_size and CPU_CORES=$cpu_cores"
 }
 
 write_compose_file() {
@@ -300,8 +388,8 @@ services:
       VERSION: "10"
       USERNAME: ${WINDOWS_USERNAME}
       PASSWORD: ${WINDOWS_PASSWORD}
-      RAM_SIZE: "10G"
-      CPU_CORES: "4"
+      RAM_SIZE: ${RAM_SIZE}
+      CPU_CORES: ${CPU_CORES}
     cap_add:
       - NET_ADMIN
     ports:
@@ -343,7 +431,7 @@ runtime_checks() {
 
 start_windows() {
   need_docker
-  [[ -f "$ENV_FILE" && -f "$COMPOSE_FILE" ]] || generate_config
+  generate_config
 
   if ! docker info >/dev/null 2>&1; then
     die "Docker is not running. Start Docker or restart the Codespace, then run this command again."

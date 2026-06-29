@@ -6,8 +6,8 @@ services:
       VERSION: "10"
       USERNAME: ${WINDOWS_USERNAME}
       PASSWORD: ${WINDOWS_PASSWORD}
-      RAM_SIZE: "10G"
-      CPU_CORES: "4"
+      RAM_SIZE: ${RAM_SIZE}
+      CPU_CORES: ${CPU_CORES}
     cap_add:
       - NET_ADMIN
     ports:
