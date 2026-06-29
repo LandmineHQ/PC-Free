@@ -82,56 +82,37 @@ For local Docker installation, see the complete guide below.
 
 ## Guía Rápida
 
-### 1️⃣ Verifica el almacenamiento disponible
+### 1️⃣ Create your `.env` file
 
 ```bash
-df -h
+cp .env.example .env
 ```
 
-Escoge la partición con más espacio libre.
+Edit `.env` and set your Windows username and password.
 
-### 2️⃣ Crea la carpeta de datos para Docker
+### 2️⃣ Start the Windows container
 
 ```bash
-sudo mkdir -p /tmp/docker-data
+docker compose -f windows10.yml up -d
 ```
 
-### 3️⃣ Configura Docker
+### 3️⃣ Open Windows in your browser
 
-Edita el archivo:
+In GitHub Codespaces, open the forwarded port `8006`.
+
+### Optional: use the helper script
 
 ```bash
-sudo nano /etc/docker/daemon.json
+bash scripts/pc-free.sh
 ```
 
-Agrega:
-
-```json
-{
-  "data-root": "/tmp/docker-data"
-}
-```
-
-### 4️⃣ Reinicia tu Codespace
-
-Para aplicar los cambios de configuración.
-
-### 5️⃣ Verifica Docker
-
-```bash
-docker info
-```
-
-Asegúrate de que `Docker Root Dir` sea `/tmp/docker-data`.
+The script generates `.env`, keeps `windows10.yml` aligned with `dockur/windows`, and starts the container.
 
 ---
 
 ## 🧱 Archivo `windows10.yml`
 
 ```yaml
-# Antes de ejecutar docker-compose up, ejecuta:
-# bash check_github_follow.sh || exit 1
-# Si no sigues a https://github.com/jephersonRD, el entorno no se iniciará.
 services:
   windows:
     image: dockurr/windows
@@ -147,17 +128,14 @@ services:
     ports:
       - "8006:8006"
       - "3389:3389/tcp"
+      - "3389:3389/udp"
     volumes:
-      - /tmp/docker-data:/mnt/disco1
-      - windows-data:/mnt/windows-data
+      - ./windows:/storage
     devices:
       - "/dev/kvm:/dev/kvm"
       - "/dev/net/tun:/dev/net/tun"
     stop_grace_period: 2m
     restart: always
-
-volumes:
-  windows-data:
 ```
 
 ---
@@ -167,7 +145,7 @@ volumes:
 ```ini
 WINDOWS_USERNAME=YourUsername
 WINDOWS_PASSWORD=YourPassword
-GITHUB_USER=YourGitHubUsername
+WINDOWS_STORAGE=./windows
 ```
 
 ### 🛑 Agrega este archivo a tu `.gitignore`:
@@ -492,7 +470,7 @@ Distributed under the MIT License. See [LICENSE](LICENSE) file for more informat
 
 Special thanks to:
 
-- [dockurr/windows](https://github.com/dockurr/windows) - Docker Windows image
+- [dockur/windows](https://github.com/dockur/windows) - Docker Windows image project
 - [GitHub Codespaces](https://github.com/features/codespaces) - Cloud development environment
 - All our [amazing contributors](https://github.com/jephersonRD/pc-free/graphs/contributors)
 

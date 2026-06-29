@@ -526,7 +526,7 @@ pre .n      { color: #fbbf24; }
         </div>
       </div>
 
-      <!-- ═══ STEP 2: CHECK STORAGE ═══ -->
+      <!-- ═══ STEP 2: CREATE ENV ═══ -->
       <div class="step-row">
         <div class="step-timeline">
           <div class="step-dot terminal">1</div>
@@ -534,20 +534,20 @@ pre .n      { color: #fbbf24; }
         </div>
         <div class="step-content">
           <span class="step-tag terminal"><i class="ti ti-terminal"></i> Terminal</span>
-          <div class="step-title">Check available storage</div>
-          <div class="step-desc">Open the Codespace terminal and run this to see available disk partitions. Pick the one with the most free space.</div>
+          <div class="step-title">Create the environment file</div>
+          <div class="step-desc">Create a local <code class="inline">.env</code> file from the example, then edit the Windows username and password.</div>
           <div class="term-block">
             <div class="term-header">
               <div class="term-dots"><span></span><span></span><span></span></div>
               <span class="term-label">codespace ~ bash</span>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre><span class="prompt">$</span> <span class="cmd">df</span> <span class="flag">-h</span></pre>
+            <pre><span class="prompt">$</span> <span class="cmd">cp</span> <span class="path">.env.example</span> <span class="path">.env</span></pre>
           </div>
         </div>
       </div>
 
-      <!-- ═══ STEP 3: MKDIR ═══ -->
+      <!-- ═══ STEP 3: HELPER SCRIPT ═══ -->
       <div class="step-row">
         <div class="step-timeline">
           <div class="step-dot terminal">2</div>
@@ -555,20 +555,20 @@ pre .n      { color: #fbbf24; }
         </div>
         <div class="step-content">
           <span class="step-tag terminal"><i class="ti ti-terminal"></i> Terminal</span>
-          <div class="step-title">Create Docker data folder</div>
-          <div class="step-desc">Create the directory that Docker will use to store all Windows data.</div>
+          <div class="step-title">Run the helper script</div>
+          <div class="step-desc">The script keeps the Compose file aligned with dockur/windows and starts the Windows container.</div>
           <div class="term-block">
             <div class="term-header">
               <div class="term-dots"><span></span><span></span><span></span></div>
               <span class="term-label">codespace ~ bash</span>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre><span class="prompt">$</span> <span class="cmd">sudo mkdir</span> <span class="flag">-p</span> <span class="path">/tmp/docker-data</span></pre>
+            <pre><span class="prompt">$</span> <span class="cmd">bash</span> <span class="path">scripts/pc-free.sh</span></pre>
           </div>
         </div>
       </div>
 
-      <!-- ═══ STEP 4: CONFIGURE DOCKER ═══ -->
+      <!-- ═══ STEP 4: DOCKER COMPOSE ═══ -->
       <div class="step-row">
         <div class="step-timeline">
           <div class="step-dot terminal">3</div>
@@ -576,47 +576,47 @@ pre .n      { color: #fbbf24; }
         </div>
         <div class="step-content">
           <span class="step-tag terminal"><i class="ti ti-terminal"></i> Terminal</span>
-          <div class="step-title">Configure Docker daemon</div>
-          <div class="step-desc">Open the daemon config file, paste the JSON below, then save with <code class="inline">Ctrl+O → Enter → Ctrl+X</code>.</div>
+          <div class="step-title">Or start with Docker Compose</div>
+          <div class="step-desc">If you created <code class="inline">.env</code> yourself, you can start the official dockur/windows container directly.</div>
           <div class="term-block">
             <div class="term-header">
               <div class="term-dots"><span></span><span></span><span></span></div>
               <span class="term-label">codespace ~ bash</span>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre><span class="prompt">$</span> <span class="cmd">sudo nano</span> <span class="path">/etc/docker/daemon.json</span></pre>
+            <pre><span class="prompt">$</span> <span class="cmd">docker compose</span> <span class="flag">-f</span> <span class="path">windows10.yml</span> <span class="cmd">up</span> <span class="flag">-d</span></pre>
           </div>
           <div style="margin-top:10px;"></div>
           <div class="file-card">
             <div class="file-header">
-              <div class="file-name"><i class="ti ti-file-code"></i> /etc/docker/daemon.json</div>
+              <div class="file-name"><i class="ti ti-file-code"></i> .env</div>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre>{
-  <span class="k">"data-root"</span>: <span class="s">"/tmp/docker-data"</span>
-}</pre>
+            <pre><span class="k">WINDOWS_USERNAME</span>=<span class="s">YourUsername</span>
+<span class="k">WINDOWS_PASSWORD</span>=<span class="s">YourPassword</span>
+<span class="k">WINDOWS_STORAGE</span>=<span class="s">./windows</span></pre>
           </div>
         </div>
       </div>
 
-      <!-- ═══ STEP 5: RESTART ═══ -->
+      <!-- ═══ STEP 5: OPEN PORT ═══ -->
       <div class="step-row">
         <div class="step-timeline">
           <div class="step-dot warn"><i class="ti ti-refresh" style="font-size:14px;"></i></div>
           <div class="step-line"></div>
         </div>
         <div class="step-content">
-          <span class="step-tag warn"><i class="ti ti-refresh"></i> Action required</span>
-          <div class="step-title">Restart your Codespace</div>
-          <div class="step-desc">The Docker daemon config won't take effect until you restart. Go to <strong>Command Palette → Codespaces: Restart</strong>, or close and reopen the Codespace from GitHub.</div>
+          <span class="step-tag warn"><i class="ti ti-world"></i> Browser</span>
+          <div class="step-title">Open port 8006</div>
+          <div class="step-desc">Open the Codespaces <strong>Ports</strong> panel, make port <code class="inline">8006</code> public if needed, then open it in your browser.</div>
           <div class="warn-box">
             <i class="ti ti-alert-triangle"></i>
-            <p>After restarting, open the terminal again and continue with the next step.</p>
+            <p>The first Windows boot can take several minutes while the image is downloaded and installed.</p>
           </div>
         </div>
       </div>
 
-      <!-- ═══ STEP 6: VERIFY DOCKER ═══ -->
+      <!-- ═══ STEP 6: CHECK STATUS ═══ -->
       <div class="step-row">
         <div class="step-timeline">
           <div class="step-dot terminal">4</div>
@@ -624,17 +624,15 @@ pre .n      { color: #fbbf24; }
         </div>
         <div class="step-content">
           <span class="step-tag terminal"><i class="ti ti-terminal"></i> Terminal</span>
-          <div class="step-title">Verify Docker configuration</div>
-          <div class="step-desc">Confirm that <code class="inline">Docker Root Dir</code> shows <code class="inline">/tmp/docker-data</code> in the output.</div>
+          <div class="step-title">Check container status</div>
+          <div class="step-desc">Use Docker to confirm that the Windows container is running.</div>
           <div class="term-block">
             <div class="term-header">
               <div class="term-dots"><span></span><span></span><span></span></div>
               <span class="term-label">codespace ~ bash</span>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre><span class="prompt">$</span> <span class="cmd">docker info</span>
-<span class="c">...
-Docker Root Dir: /tmp/docker-data  ← must show this</span></pre>
+            <pre><span class="prompt">$</span> <span class="cmd">docker ps</span> <span class="flag">--filter</span> <span class="path">name=windows</span></pre>
           </div>
         </div>
       </div>
@@ -647,19 +645,14 @@ Docker Root Dir: /tmp/docker-data  ← must show this</span></pre>
         </div>
         <div class="step-content">
           <span class="step-tag file"><i class="ti ti-file-code"></i> File — Codespace editor</span>
-          <div class="step-title">Create <code class="inline">windows10.yml</code></div>
-          <div class="step-desc">Create this file in the root of your Codespace. You can open it in the VS Code file explorer on the left sidebar.</div>
+          <div class="step-title">Review <code class="inline">windows10.yml</code></div>
+          <div class="step-desc">The repository includes this Compose file. It follows the dockur/windows layout and stores Windows data in <code class="inline">./windows</code>.</div>
           <div class="file-card">
             <div class="file-header">
               <div class="file-name"><i class="ti ti-file-code"></i> windows10.yml</div>
               <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
             </div>
-            <pre><span class="c"># Before running docker-compose up, execute:</span>
-<span class="c"># bash check_github_follow.sh || exit 1</span>
-<span class="c"># If you don't follow https://github.com/jephersonRD</span>
-<span class="c"># the environment will NOT start.</span>
-
-<span class="k">services:</span>
+            <pre><span class="k">services:</span>
   <span class="k">windows:</span>
     <span class="k">image:</span> <span class="s">dockurr/windows</span>
     <span class="k">container_name:</span> <span class="s">windows</span>
@@ -674,17 +667,14 @@ Docker Root Dir: /tmp/docker-data  ← must show this</span></pre>
     <span class="k">ports:</span>
       - <span class="s">"8006:8006"</span>
       - <span class="s">"3389:3389/tcp"</span>
+      - <span class="s">"3389:3389/udp"</span>
     <span class="k">volumes:</span>
-      - <span class="s">/tmp/docker-data:/mnt/disco1</span>
-      - <span class="s">windows-data:/mnt/windows-data</span>
+      - <span class="s">./windows:/storage</span>
     <span class="k">devices:</span>
       - <span class="s">"/dev/kvm:/dev/kvm"</span>
       - <span class="s">"/dev/net/tun:/dev/net/tun"</span>
     <span class="k">stop_grace_period:</span> <span class="s">2m</span>
-    <span class="k">restart:</span> <span class="s">always</span>
-
-<span class="k">volumes:</span>
-  <span class="k">windows-data:</span></pre>
+    <span class="k">restart:</span> <span class="s">always</span></pre>
           </div>
         </div>
       </div>
@@ -706,7 +696,7 @@ Docker Root Dir: /tmp/docker-data  ← must show this</span></pre>
             </div>
             <pre><span class="k">WINDOWS_USERNAME</span>=<span class="s">YourUsername</span>
 <span class="k">WINDOWS_PASSWORD</span>=<span class="s">YourPassword</span>
-<span class="k">GITHUB_USER</span>=<span class="s">YourGitHubUsername</span></pre>
+<span class="k">WINDOWS_STORAGE</span>=<span class="s">./windows</span></pre>
           </div>
           <div style="margin-top:10px;"></div>
           <div class="warn-box">

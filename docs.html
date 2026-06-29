@@ -800,56 +800,56 @@ code {
     <section class="doc-section" id="setup">
       <div class="section-title"><i class="ti ti-terminal"></i> Setup Guide</div>
 
-      <div class="section-title-sm"><i class="ti ti-device-floppy"></i> 1. Check available storage</div>
+      <div class="section-title-sm"><i class="ti ti-key"></i> 1. Create your .env file</div>
       <div class="code-block">
         <div class="code-header">
           <div class="code-dots"><span></span><span></span><span></span></div>
           <span class="code-lang">bash</span>
           <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
         </div>
-        <pre>df -h</pre>
+        <pre>cp .env.example .env</pre>
       </div>
-      <p class="prose">Pick the partition with the most free space.</p>
+      <p class="prose">Edit <code>.env</code> and set your Windows username and password.</p>
 
-      <div class="section-title-sm"><i class="ti ti-folder-plus"></i> 2. Create Docker data folder</div>
+      <div class="section-title-sm"><i class="ti ti-player-play"></i> 2. Start the Windows container</div>
       <div class="code-block">
         <div class="code-header">
           <div class="code-dots"><span></span><span></span><span></span></div>
           <span class="code-lang">bash</span>
           <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
         </div>
-        <pre>sudo mkdir -p /tmp/docker-data</pre>
-      </div>
-
-      <div class="section-title-sm"><i class="ti ti-settings"></i> 3. Configure Docker daemon</div>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots"><span></span><span></span><span></span></div>
-          <span class="code-lang">bash</span>
-          <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
-        </div>
-        <pre>sudo nano /etc/docker/daemon.json</pre>
-      </div>
-      <p class="prose">Add the following content:</p>
-      <div class="code-block">
-        <div class="code-header">
-          <div class="code-dots"><span></span><span></span><span></span></div>
-          <span class="code-lang">json</span>
-          <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
-        </div>
-        <pre>{
-  <span class="k">"data-root"</span>: <span class="s">"/tmp/docker-data"</span>
-}</pre>
+        <pre>docker compose -f windows10.yml up -d</pre>
       </div>
 
-      <div class="section-title-sm"><i class="ti ti-refresh"></i> 4. Restart Codespace, then verify Docker</div>
+      <div class="section-title-sm"><i class="ti ti-world"></i> 3. Open Windows in your browser</div>
       <div class="code-block">
         <div class="code-header">
           <div class="code-dots"><span></span><span></span><span></span></div>
           <span class="code-lang">bash</span>
           <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
         </div>
-        <pre>docker info <span class="c"># Docker Root Dir should be /tmp/docker-data</span></pre>
+        <pre>Open the forwarded Codespaces port 8006</pre>
+      </div>
+      <p class="prose">The first boot can take several minutes while Windows is downloaded and installed.</p>
+
+      <div class="section-title-sm"><i class="ti ti-terminal"></i> Optional helper script</div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span></span><span></span><span></span></div>
+          <span class="code-lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
+        </div>
+        <pre>bash scripts/pc-free.sh</pre>
+      </div>
+
+      <div class="section-title-sm"><i class="ti ti-activity"></i> Check container status</div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span></span><span></span><span></span></div>
+          <span class="code-lang">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
+        </div>
+        <pre>docker ps --filter name=windows</pre>
       </div>
 
       <div class="section-title-sm"><i class="ti ti-file-text"></i> windows10.yml</div>
@@ -859,8 +859,7 @@ code {
           <span class="code-lang">yaml</span>
           <button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy</button>
         </div>
-        <pre><span class="c"># Run check_github_follow.sh before docker-compose up</span>
-services:
+        <pre>services:
   windows:
     <span class="k">image:</span> <span class="s">dockurr/windows</span>
     <span class="k">container_name:</span> <span class="s">windows</span>
@@ -870,15 +869,19 @@ services:
       <span class="k">PASSWORD:</span> <span class="m">${WINDOWS_PASSWORD}</span>
       <span class="k">RAM_SIZE:</span> <span class="s">"10G"</span>
       <span class="k">CPU_CORES:</span> <span class="s">"4"</span>
+    <span class="k">cap_add:</span>
+      - <span class="s">NET_ADMIN</span>
     <span class="k">ports:</span>
       - <span class="s">"8006:8006"</span>   <span class="c"># Web interface</span>
-      - <span class="s">"3389:3389"</span>   <span class="c"># RDP</span>
+      - <span class="s">"3389:3389/tcp"</span>   <span class="c"># RDP</span>
+      - <span class="s">"3389:3389/udp"</span>   <span class="c"># RDP UDP</span>
     <span class="k">volumes:</span>
-      - <span class="s">/tmp/docker-data:/mnt/disco1</span>
-      - <span class="s">windows-data:/mnt/windows-data</span>
-    <span class="k">restart:</span> <span class="s">always</span>
-<span class="k">volumes:</span>
-  windows-data:</pre>
+      - <span class="s">./windows:/storage</span>
+    <span class="k">devices:</span>
+      - <span class="s">"/dev/kvm:/dev/kvm"</span>
+      - <span class="s">"/dev/net/tun:/dev/net/tun"</span>
+    <span class="k">stop_grace_period:</span> <span class="s">2m</span>
+    <span class="k">restart:</span> <span class="s">always</span></pre>
       </div>
 
       <div class="section-title-sm"><i class="ti ti-key"></i> .env file</div>
@@ -890,7 +893,7 @@ services:
         </div>
         <pre><span class="k">WINDOWS_USERNAME</span>=<span class="s">YourUsername</span>
 <span class="k">WINDOWS_PASSWORD</span>=<span class="s">YourPassword</span>
-<span class="k">GITHUB_USER</span>=<span class="s">YourGitHubUsername</span></pre>
+<span class="k">WINDOWS_STORAGE</span>=<span class="s">./windows</span></pre>
       </div>
       <div class="warn-box">
         <i class="ti ti-alert-triangle"></i>
